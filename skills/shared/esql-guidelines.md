@@ -67,6 +67,17 @@ When declaring ESQL variables:
 - An EXTERNAL variable carries a constant fixed value. It cannit be changed and is read-only.
 - An EXTERNAL variable declaration is associated with a User-Defined Property (UDP) of the message flow. The value of a UDP which has been set in the Message Flow editor (which is then stored in the .msgflow file using the `eStructuralFeatures` element) takes precedence over a value which is assigned in a DECLARE statement in ESQL. UDPs are accessible in ESQL within the Compute, Database, DatabaseInput and Filter nodes. UDPs have global scope within a message flow, including subflows. This means that if you reuse the same subflow (with a UDP) more than once within a message flow each UDP must carry the same value.
 
+## When to use ESQL SHARED variables
+When declaring ESQL variables:
+- A SHARED variable should be used when defining variables that will be changed at runtime AND which need to be kept across messages.
+- A SHARED variable works well when you want an in-memory cache for example containing reference or lookup data that is expensive to fetch for every message. For example, a common pattern is to populate a SHARED ROW variable once from a database query when the first message arrives. Note that the data is not persisted (it is lost on restart or redeploy and is not transactional). A rollback will not undo changes.
+- A SHARED variable MUST be declared at the scope of the ESQL Module or Schema. It cannot be declared inside a Function or Procedure.
+- A SHARED variable is shared across all additional instances (multiple threads) of a message flow. When writing code using shared variables you must consider this, so typically when adopting the variable you should be within an ATOMIC section in order to avoid race conditions.
+- A SHARED variable is NOT visible beyond a message flow, so you can't share it across integration servers. If you need that capability, it would be better to use the ACE Embedded Cache capability.
+- A SHARED variable is held in memory, so if being used to hold a large cache this will be held in memory for the life of the flow, so size SHARED variables carefully.
+- A SHARED variable is not automatically refreshed. If the source data changes, you will need a strategy to accommodate this such as a timestamp-based reload, a restart or a redeploy.
+- Use neither EXTERNAL nor SHARED for defining variables that will be changed at runtime within the scope of a Compute node but will not be kept across messages.
+
 ## Field existence checks
 - Use `LASTMOVE` or `CARDINALITY` when checking whether a field exists.
 - Prefer the most direct existence check that matches the tree navigation pattern being used.
