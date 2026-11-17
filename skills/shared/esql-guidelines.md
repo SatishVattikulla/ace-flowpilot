@@ -78,6 +78,16 @@ When declaring ESQL variables:
 - A SHARED variable is not automatically refreshed. If the source data changes, you will need a strategy to accommodate this such as a timestamp-based reload, a restart or a redeploy.
 - Use neither EXTERNAL nor SHARED for defining variables that will be changed at runtime within the scope of a Compute node but will not be kept across messages.
 
+## How to use the Environment tree from ESQL
+- The Environment tree is always created with the in-memory logical tree, but the message flow itself (as opposed to the user's logic within the message flow) neither populates the Environment tree nor uses its contents. 
+- The Environment tree (and any data you choose to add to it as a message flow developer) is propagated to subsequent nodes in the message flow.   
+- You can use the Environment tree for your own purposes, as a scratchpad or working area to pass information from one node to another. 
+- If you create a new output message in a Compute node, the Environment tree is also copied from the input message to the new output message. (In contrast to the LocalEnvironment tree, which is only included in the output message if you explicitly request that it is).
+- There is only one Environment tree per message thread local storage (ie one message travelling through a flow does not see the Environment tree belonging to a different message travelling through the flow). Changes made in any message flow node are visible to all later nodes. They are also visible to earlier nodes if the message flows back, for example to a TryCatch or FlowOrder node. Changes to the Environment are retained when that happens.
+- By convention, the best place to write your own data to the Environment tree is to a subtree Environment.Variables
+- Use the Environment.Variables tree when you need to pass data between nodes that should survive loops, error paths, TryCatch handling and FlowOrder branches. Examples could be a correlation ID, a looked-up customer record, or the original request payload.
+- Use the Environment.Variables tree when you want to keep data separate from the message body. This avoids polluting the payload and avoids re-parsing it. The Environment tree is useful if the data should travel with the message but without needing extra copying code in every Compute node.
+
 ## Field existence checks
 - Use `LASTMOVE` or `CARDINALITY` when checking whether a field exists.
 - Prefer the most direct existence check that matches the tree navigation pattern being used.
