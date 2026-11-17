@@ -88,6 +88,9 @@ When declaring ESQL variables:
 - Use the Environment.Variables tree when you need to pass data between nodes that should survive loops, error paths, TryCatch handling and FlowOrder branches. Examples could be a correlation ID, a looked-up customer record, or the original request payload.
 - Use the Environment.Variables tree when you want to keep data separate from the message body. This avoids polluting the payload and avoids re-parsing it. The Environment tree is useful if the data should travel with the message but without needing extra copying code in every Compute node.
 
+## When using ESQL PROPAGATE
+When you use the ESQL PROPAGATE function to control the routing of output messages from a Compute node, be aware of the impact of the `RETURN TRUE;` statement, which causes a message to be sent (propagated) to the Compute node's out terminal. Be particularly mindful when using ESQL IF / ELSE branching logic that you may have chosen to PROPAGATE when one of the conditions evaluates to true and forgotten that at the end of the Compute ESQL Module issue a final `RETURN TRUE;` which would cause an extra propagation to the out terminal.
+
 ## Field existence checks
 - Use `LASTMOVE` or `CARDINALITY` when checking whether a field exists.
 - Prefer the most direct existence check that matches the tree navigation pattern being used.
