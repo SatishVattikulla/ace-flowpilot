@@ -91,6 +91,16 @@ When declaring ESQL variables:
 ## When using ESQL PROPAGATE
 When you use the ESQL PROPAGATE function to control the routing of output messages from a Compute node, be aware of the impact of the `RETURN TRUE;` statement, which causes a message to be sent (propagated) to the Compute node's out terminal. Be particularly mindful when using ESQL IF / ELSE branching logic that you may have chosen to PROPAGATE when one of the conditions evaluates to true and forgotten that at the end of the Compute ESQL Module issue a final `RETURN TRUE;` which would cause an extra propagation to the out terminal.
 
+## ESQL considerations for use of CopyMessageHeaders() and CopyEntireMessage()
+When a new ESQL file is generated in the Toolkit, templates are provided for two very simple functions named CopyMessageHeaders() and CopyEntireMessage()
+- In general CopyMessageHeaders() is typically used when you are building a new or transformed body but want to keep the headers (such as MQMD, MQRFH2 or HTTP)
+- In general CopyEntireMessage() is typically used when the whole logical tree is duplicated in memory
+- CopyMessageHeaders tends to be cheaper processing cost because the tendency is for this function to copy less data
+- Do NOT call both CopyMessageHeaders() and CopyEntireMessage(). Use CopyEntireMessage() if you only need to make small edits to the existing body. If you are replacing or transforming large sections of the existing body then CopyMessageHeaders() is more appropriate as this avoids copying a body that you are about to overwrite.
+- Do NOT copy data if you don't have to - set the Compute node's Mode property deliberately depending on whether you intend to change the message body. Only copy data which you need to the Environment tree. Reduce the number of Compute nodes where possible and avoid consecutive Compute nodes with nothing between them and combine their logic to avoid unnecessary tree copying.
+- After using CopyMessageHeaders(), update anything that no longer fits the new message. For example delete headers that you shouldn't forward based on the outbound message transport(s) you intend to use. For example when switching between MQ and HTTP or vice versa, delete headers you won't need and shouldn't forward.
+- When using CopyMessageHeaders() be careful with the loop's upper bound. WHILE I < J is deliberate. It stops before the last child, which the template assumes is the body. If your message has no body, or has extra trailing children, you will need to adjust it.
+
 ## Field existence checks
 - Use `LASTMOVE` or `CARDINALITY` when checking whether a field exists.
 - Prefer the most direct existence check that matches the tree navigation pattern being used.
