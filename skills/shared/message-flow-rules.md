@@ -49,6 +49,16 @@ For example:
 - MQ Input nodes require a queue name.
 - HTTP Input nodes require a URLSpecifier whose value starts with a leading `/` character
 
+## Message Flow naming conventions
+- Message Flow names must be unique within an integration server.
+- Message Flow node names must be unique within the flow, even across node types, so for example two MQOutput nodes within the same flow each need their own name and as another example you cannot name two nodes of different types such as a Compute node and a JavaCompute node with the same name in the same message flow.
+- Pick a message flow name that reflects the flow's function for example like `OrderProcessing`
+- Keep paths short. ESQL and map file paths must not exceed 256 characters on Windows. If they do, the compiled flow isn't generated and can't be deployed. Keep the names of ESQL files, mapping files, projects and broker schemas short where possible.
+- When defining Label nodes, the Label node's Label Name property must be unique within a message flow. This is also true if a subflow contains a Label node and is then embedded more than once in a parent flow.
+- In general do not leave nodes with default names such as `Compute` or `Compute1` because Monitoring events, statistics and error messages use these names so they are not very descriptive for a human to understand at a glance what the purpose of the node is within the context of the specific flow.
+- Avoid spaces and special characters in then names of message flows, applications and libraries. They can cause trouble in command-line tools, BAR overrides and scripts.
+- Avoid environment names such as _DEV or _PROD in message flow names. Use configuration for environment differences.
+
 ## Validation
 Before returning generated `.msgflow` content:
 - you MUST read [`skills/shared/FlowValidation/message-flow-validation.md`](message-flow-validation.md)
