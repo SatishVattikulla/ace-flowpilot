@@ -59,6 +59,14 @@ The `computeExpression` property in a Compute node must match the ESQL file stru
 - Minimize the number of statements when doing so improves clarity and efficiency.
 - If an output field is known to be mandatory, it is important not to assign NULL using a SET statement (or if you do, ensure that SET is using the VALUE clause). This can be avoided using the ESQL COALESCE function which evaluates its parameters in order and returns the first one that is not NULL. The result is NULL if, and only if, all the arguments are NULL. The parameters can be of any scalar type, but they need not all be of the same type. The COALESCE function is often used to provide a default value for a field, which might not exist in a message. When using the COALESCE function, order your arguments by likelihood and cost: Place values that are frequently non-NULL first, and if you can put expensive expressions (such as subqueries or heavy functions) later in the argument list since COALESCE short-circuits as soon as it finds a match.
 
+## When to use ESQL EXTERNAL variables
+When declaring ESQL variables:
+- Use EXTERNAL if the variable is to be used for defining configuration that is set at the time of deployment.
+- An EXTERNAL variable has the same lifetime as the message flow which uses it.
+- An EXTERNAL variable MUST be declared at the scope of the ESQL Module or Schema. It cannot be declared inside a Function or Procedure.
+- An EXTERNAL variable carries a constant fixed value. It cannit be changed and is read-only.
+- An EXTERNAL variable declaration is associated with a User-Defined Property (UDP) of the message flow. The value of a UDP which has been set in the Message Flow editor (which is then stored in the .msgflow file using the `eStructuralFeatures` element) takes precedence over a value which is assigned in a DECLARE statement in ESQL. UDPs are accessible in ESQL within the Compute, Database, DatabaseInput and Filter nodes. UDPs have global scope within a message flow, including subflows. This means that if you reuse the same subflow (with a UDP) more than once within a message flow each UDP must carry the same value.
+
 ## Field existence checks
 - Use `LASTMOVE` or `CARDINALITY` when checking whether a field exists.
 - Prefer the most direct existence check that matches the tree navigation pattern being used.
