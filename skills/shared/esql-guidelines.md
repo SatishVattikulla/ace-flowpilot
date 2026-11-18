@@ -311,6 +311,17 @@ Always use `FIELDVALUE()` when reading leaf values from an XMLNSC tree for outpu
 - Create JSON scalar values by assigning them with `SET outRef.Field = value` rather than inventing typed scalar nodes.
 - Do not claim that these constructs are invalid unless they are being used in a way that contradicts the ACE guidance in this file.
 
+## ESQL Validation
+- When creating new ESQL files or updating existing ESQL files you MUST validate them if possible (this depends on whether you have access to `esql-validate.exe` described below)
+- `esql-validate.exe` is provided as part of the ACE product install (from version 13.0.9.1 and above) that can help you use correct syntax when creating `.esql` files
+- The `esql-validate.exe` can be found in the ACE installation at `<ACE Install Location>/server/bin`
+- For example the location within the default install location on Windows is `C:\Program Files\IBM\ACE\13.0.M.F\server\bin` where M represents the ACE Modification release number and F represents the ACE Fixpack release number such as `13.0.9.1` In general pick the latest available release, and therefore the directory which first of all has the highest available number M, and from within that choice, the highest available number F. So for example 13.0.9.1 would be picked in preference to 13.0.8.2
+- For example the location within the default install location on Linux is `/opt/IBM/ace-13.0.M.F/server/bin` where M represents the ACE Modification release number and F represents the ACE Fixpack release number such as `13.0.9.1` In general pick the latest available release, and therefore the directory which first of all has the highest available number M, and from within that choice, the highest available number F. So for example 13.0.9.1 would be picked in preference to 13.0.8.2
+- For example the location within the default install location on MacOS is `/Applications/IBM App Connect Enterprise 13.0.M.F/server/bin` where M represents the ACE Modification release number and F represents the ACE Fixpack release number such as `13.0.9.1` In general pick the latest available release, and therefore the directory which first of all has the highest available number M, and from within that choice, the highest available number F. So for example 13.0.9.1 would be picked in preference to 13.0.8.2
+- If you do not have access to the `esql-validate.exe` file you should ask the user to provide it from the above location.
+- To validate ESQL using `esql-validate.exe` use the command with a single parameter which represents the absolute path to the directory on disk holding the ESQL files which you have generated: `esql-validate.exe <AbsoluteFilePathToDirectoryContainingESQL> --json` The outputs of the command will tell you if there are any syntax issues. If there are issues you MUST correct them and then repeat the validation process until there are no further errors
+- If `esql-validate.exe` is not available on the local machine (because for example the ACE product is not installed) then warn the user about this and then proceed without validating
+
 ## Related files
 - [`skills/ace-esql/SKILL.md`](../ace-esql/SKILL.md)
 - [`skills/shared/review-checklist.md`](review-checklist.md)
