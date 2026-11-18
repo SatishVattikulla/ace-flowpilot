@@ -32,7 +32,8 @@ Use this skill when the user asks to create or modify `.esql` files for ACE Comp
 - When the user provides a target pattern, expected output shape, or reference ESQL, follow that pattern instead of generating a generic example transformation.
 - Preserve valid ACE ESQL constructs unless the requested change or the shared guidance requires otherwise.
 - Do not invent compiler, parser, or unresolved identifier errors for valid ACE ESQL built-ins.
-- Treat `FIELDVALUE(...)`, `LASTMOVE(...)`, `MOVE ... NEXTSIBLING NAME '...'`, `TYPE JSON.Object`, and `CREATE FIELD ... IDENTITY (JSON.Array)` as valid ACE ESQL constructs.
+- Treat `FIELDVALUE(...)`, `LASTMOVE(...)`, `MOVE ... NEXTSIBLING NAME '...'`, `TYPE Name`, and `CREATE FIELD ... IDENTITY (JSON.Array)` as valid ACE ESQL constructs.
+- To create a JSON object element, use `TYPE Name`, for example `CREATE LASTCHILD OF parent TYPE Name NAME 'x'`. JSON.Object evaluates to the same value, but the ACE Toolkit flags it with a warning in some contexts so it is better to use `TYPE Name` than `TYPE JSON.Object`. 
 - **Never use `out`, `in`, or `inout` as variable or reference names** — they are ESQL reserved keywords (parameter direction modifiers) and cause parse errors. Use alternatives such as `outRef`, `wmsRoot`, `xmlOut`, `reqBody`, `inRef`.
 - **Never initialise a `DECLARE REFERENCE TO` with a `.*[<]` last-child expression** — that syntax is only valid inside `SET`/`IF`. Instead use two statements: `DECLARE ref REFERENCE TO parent;` then `MOVE ref LASTCHILD;`.
 - Do not invent ACE JSON scalar type syntax such as `TYPE JSON.String`, `TYPE JSON.Number`, or `TYPE JSON.Boolean`.
@@ -130,7 +131,7 @@ SET OutputRoot.HTTPReplyHeader."X-Original-HTTP-Status-Code" = 202;
 SET OutputRoot.HTTPReplyHeader."Content-Type" = 'application/json';
 
 CREATE LASTCHILD OF OutputRoot DOMAIN 'JSON';
-CREATE LASTCHILD OF OutputRoot.JSON TYPE JSON.Object NAME 'Data';
+CREATE LASTCHILD OF OutputRoot.JSON TYPE Name NAME 'Data';
 ```
 
 Creating `HTTPReplyHeader` **after** `OutputRoot.XMLNSC` or `OutputRoot.JSON` causes:

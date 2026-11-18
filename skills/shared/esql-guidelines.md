@@ -50,6 +50,13 @@ The `computeExpression` property in a Compute node must match the ESQL file stru
 | No BROKER SCHEMA | `esql://routine/#Module.Function` | `esql://routine/#EmployeeAPI_Compute.CreateEmployee` |
 | With BROKER SCHEMA | `esql://routine/schema.path#Module.Function` | `esql://routine/com.ibm.example#EmployeeAPI_Compute.CreateEmployee` |
 
+## Always DECLARE REFERENCE variables
+- When using a CREATE statement with an AS clause, be sure to have declared the REFERENCE before the CREATE statement, as shown in the example below:
+```esql
+DECLARE myRef REFERENCE TO OutputRoot.JSON.Data.SaleList;
+CREATE LASTCHILD OF OutputRoot.JSON.Data.SaleList AS myRef TYPE Name NAME 'Field1';
+```
+
 ## Performance and tree navigation
 - Declare `REFERENCE` variables when navigating heavily nested logical trees to reduce repeated navigation cost.
 - Avoid unnecessary full tree copying when a change is limited to a small part of the message tree.
@@ -306,7 +313,7 @@ Always use `FIELDVALUE()` when reading leaf values from an XMLNSC tree for outpu
 - `FIELDVALUE(...)` is a valid ACE ESQL built-in and must not be replaced because it is described as unresolved.
 - `LASTMOVE(...)` is a valid ACE ESQL built-in for reference navigation.
 - `MOVE ref NEXTSIBLING NAME 'X';` is valid ACE ESQL syntax.
-- `TYPE JSON.Object` is valid ACE ESQL syntax for explicit JSON object creation.
+- `TYPE Name` is valid ACE ESQL syntax for explicit JSON object creation.
 - `CREATE FIELD ... IDENTITY (JSON.Array)` is valid ACE ESQL syntax for explicit JSON array creation.
 - Create JSON scalar values by assigning them with `SET outRef.Field = value` rather than inventing typed scalar nodes.
 - Do not claim that these constructs are invalid unless they are being used in a way that contradicts the ACE guidance in this file.
