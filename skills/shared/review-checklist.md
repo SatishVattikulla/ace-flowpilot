@@ -28,6 +28,7 @@ encoding/<project>=UTF-8
 ### Message flow nodes
 - Every message flow node uses a validated `xmi:type`.
 - HTTP Input and HTTP Reply nodes use `ComIbmWSInput.msgnode` and `ComIbmWSReply.msgnode` — **not** `ComIbmHTTPInput` or `ComIbmHTTPReply`.
+- If any Compute node reads `InputRoot.XMLNSC.*`, confirm the upstream Input node has `messageDomainProperty` of `XMLNSC`. If it reads `InputRoot.JSON.Data`, confirm `messageDomainProperty` of `JSON`. A missing or mismatched messageDomainProperty causes silent empty-tree failures at runtime.
 
 ### Connector-specific
 - Connector-specific rules were applied where relevant.

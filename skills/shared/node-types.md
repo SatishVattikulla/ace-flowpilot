@@ -117,6 +117,7 @@ When you encounter a message flow node property name that you don't recognize yo
 - HTTP Input node → namespace prefix of `ComIbmWSInput.msgnode`
   - **Note:** HTTP Input nodes require a `URLSpecifier` whose value starts with a leading `/` character
   - HTTP Input has a `messageDomainProperty` whose value can be `XMLNSC` or `JSON` or `BLOB` or `DFDL`
+  - When a Compute node downstream reads from `InputRoot.XMLNSC`, the HTTP Input node must have `messageDomainProperty` of `XMLNSC` set. When a Compute node downstream reads `InputRoot.JSON.Data`, set `messageDomainProperty` of `JSON`. If omitted, ACE defaults to no parser and those tree paths will be empty at runtime.
 - HTTP Reply node → namespace prefix of `ComIbmWSReply.msgnode`
 - HTTP Request node → namespace prefix of `ComIbmWSRequest.msgnode`
   - **Note:** HTTP Request nodes require a `URLSpecifier` attribute that defines the Web Service URL that should be invoked. If not provided, ask the user for their preference.
