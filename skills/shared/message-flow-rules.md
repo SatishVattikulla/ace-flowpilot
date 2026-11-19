@@ -48,6 +48,7 @@ If a node requires a value that the user has not provided, ask for it unless the
 For example:
 - MQ Input nodes require a queue name.
 - HTTP Input nodes require a URLSpecifier whose value starts with a leading `/` character
+If the flow includes a Compute node that reads from a specific input domain (XMLNSC, JSON, etc.), the upstream Input node's `messageDomainProperty` must be set to that domain.
 
 ## Message Flow naming conventions
 - Message Flow names must be unique within an integration server.
