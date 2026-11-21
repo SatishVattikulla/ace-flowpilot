@@ -14,7 +14,7 @@ Apply these runtime facts when designing or reviewing a flow. Do not contradict 
 - A `catch` terminal only receives exceptions thrown by nodes **downstream** of it.
 - If an input node's `catch` terminal is wired and the catch flow completes without throwing, the transaction is **not** rolled back. It is committed. Rollback happens only when the catch flow throws.
 - If neither `failure` nor `catch` is wired on an input node, the node applies its own default processing, which differs by node type (see the MQ and HTTP sections).
-- The Root (message) tree and LocalEnvironment are rolled back together. The Environment tree keeps its changes unless the whole transaction rolls back, so Environment is the place to carry error context (for example a business key) into a catch flow.
+- When an exception returns control to a catch flow, the Root (message) tree and LocalEnvironment are restored to what they were at that node. Environment changes are kept, so Environment is the place to carry error context (for example a business key) into a catch flow. See the Environment guidance in [`skills/shared/esql-guidelines.md`](esql-guidelines.md).
 - On a Try Catch node `catch` path, the message tree is the one the Try Catch node originally received. Changes made in the try flow are not present.
 - Database updates made in the try flow are committed or rolled back according to the node's transaction setting, not by the Try Catch node. If they were committed, the catch flow must undo them when that matters.
 - A Compute node with `Transaction` set to `Commit` (the default is `Automatic`) commits its database work regardless of whether the flow succeeds, so a later rollback cannot undo it. Use `Automatic` unless the user asks otherwise.
@@ -40,7 +40,7 @@ Source: [Handling errors in message flows](https://www.ibm.com/docs/en/app-conne
 - The MQ Input node `Transaction mode` values are `Automatic`, `Yes` (default) and `No`. Keep `Yes` when a message must not be lost.
 - With `Automatic`, only persistent messages are received under sync point. Non-persistent messages (and every message with `No`) are received outside sync point, so a rollback cannot return them to the queue and backout processing does not apply. Do not use `Automatic` or `No` for business-critical messages unless the user accepts that risk.
 - Retries are controlled by the input queue attributes `BOTHRESH` (backout threshold) and `BOQNAME` (backout queue). The MQ Input node has no retry count property. Ask the user for both values, or state the assumption.
-- When a transactional flow rolls back, the message returns to the input queue and is retried until it succeeds or the backout threshold is reached. MQ tracks the number of backouts in `MQMD.BackoutCount`. When the threshold is reached:
+- When a transactional flow rolls back, the message returns to the input queue and is retried until it succeeds or the backout threshold is reached. MQ tracks the number of backouts in `MQMD.BackoutCount`, and increments it only for a message that was received under sync point and then rolled back. When the threshold is reached:
   1. If the MQ Input node `failure` terminal is wired, the message is propagated there.
   2. Otherwise it is put to the `BOQNAME` queue, if defined.
   3. Otherwise it is put to the queue manager dead-letter queue, if defined.
@@ -57,7 +57,8 @@ Source: [MQInput node](https://www.ibm.com/docs/en/app-connect/13.0.x?topic=node
 - If a downstream exception is not caught and returns to the HTTP Input node, the node returns an error reply built from the exception in the format set by its `Fault format` property (SOAP 1.1 by default; SOAP 1.2, HTML and JSON are also available).
 - IBM's terminal description also says that if the `failure` or `catch` terminal is not wired, the message is discarded and the client receives an error when the `Maximum client wait time` expires (180 seconds by default). Whenever no reply is sent within that time, the client receives a timeout fault.
 - Therefore every catch path in an HTTP flow must end in an HTTP Reply node (`ComIbmWSReply.msgnode`) with an explicit status code and a JSON error body.
-- Set the status code with the `HTTPReplyHeader` pattern already defined in [`skills/ace-esql/SKILL.md`](../ace-esql/SKILL.md) (header before body), for example `X-Original-HTTP-Status-Code` set to 500 for a server error or 400 for a validation error.
+- Set the status code in `OutputLocalEnvironment.Destination.HTTP.ReplyStatusCode`, for example 500 for a server error or 400 for a validation error. It overrides any status code in the reply headers, and the Compute node `Compute mode` must include LocalEnvironment.
+- If you set `X-Original-HTTP-Status-Code` in `HTTPReplyHeader` instead, create that header before any body folder, as defined in [`skills/ace-esql/SKILL.md`](../ace-esql/SKILL.md). A body folder created first causes `BIP6062W`.
 - Do not return ExceptionList text, stack details or internal host names to the client. Return a short message and a correlation id, and log the details.
 
 Source: [HTTPInput node](https://www.ibm.com/docs/en/app-connect/13.0.x?topic=nodes-httpinput-node), [HTTPReply node](https://www.ibm.com/docs/en/app-connect/13.0.x?topic=nodes-httpreply-node)
@@ -67,7 +68,7 @@ Source: [HTTPInput node](https://www.ibm.com/docs/en/app-connect/13.0.x?topic=no
 - Include `SEVERITY 3`. The default is 1, and IBM requires 3 on Windows so the event log reports the error correctly.
 - Use a `MESSAGE` number from 2951 to 2999, the range reserved for users in the default catalog. Omit `CATALOG` to use the current version catalog (`BIPmsgs`).
 - `VALUES` supplies the message inserts. The supplied messages cater for eight inserts. Use short, readable values, because they appear in logs and in the ExceptionList.
-- For messages 2951 to 2999, ACE adds an extra leading insert with the name of the current component, so do not assume your first value is `Insert[1]`. Find values by content, not by position.
+- In the ExceptionList, find your values by content, not by position: do not assume your first `VALUES` entry is `Insert[1]`.
 - Do not invent other catalogs or message numbers outside the user range unless the user provides a custom catalog.
 
 ```esql
@@ -95,8 +96,8 @@ BEGIN
             VALUES('Database insert failed', SQLSTATE, SQLCODE, SQLERRORTEXT);
     END;
 
-    INSERT INTO Database.ORDERS (ORDER_ID) VALUES (FIELDVALUE(InputRoot.JSON.Data.orderId));
-    SET OutputRoot = InputRoot;
+    INSERT INTO Database.DATASOURCE_NAME.SCHEMA.ORDERS (ORDER_ID) VALUES (FIELDVALUE(InputRoot.JSON.Data.orderId));
+    CALL CopyEntireMessage();
     RETURN TRUE;
 END;
 ```
@@ -106,7 +107,7 @@ Source: [DECLARE HANDLER statement](https://www.ibm.com/docs/en/app-connect/13.0
 ## ESQL: reading the ExceptionList in a catch flow
 - In a Compute node, read the exception tree through `InputExceptionList`.
 - Each exception (for example `RecoverableException`, `ParserException`, `DatabaseException`, `UserException`) can contain `Number`, `Severity`, `Catalog`, `Label` (the node that raised it), an optional `Text` and zero or more `Insert` elements (`Type`, `Text`). A nested exception, if present, is the last child of its parent.
-- The **innermost** exception is closest to the root cause. Walk down with `MOVE ... LASTCHILD` until there is no `Number`.
+- The **innermost** exception is closest to the root cause. Walk down with `MOVE ... LASTCHILD` until the move fails, and keep the values of the last element that has a `Number`.
 - Make routing decisions on `Number` (and `Catalog`). IBM states that `File`, `Line`, `Function` and `Text` must not be used for decision making; log them only.
 
 ```esql
@@ -114,13 +115,15 @@ DECLARE ex REFERENCE TO InputExceptionList.*[1];
 DECLARE errNumber INTEGER 0;
 DECLARE errText CHARACTER '';
 DECLARE errNode CHARACTER '';
-WHILE LASTMOVE(ex) AND ex.Number IS NOT NULL DO
-    SET errNumber = ex.Number;
-    SET errNode = COALESCE(ex.Label, errNode);
-    SET errText = COALESCE(ex.Text, '');
-    FOR ins AS ex.Insert[] DO
-        SET errText = errText || ' | ' || COALESCE(ins.Text, '');
-    END FOR;
+WHILE LASTMOVE(ex) DO
+    IF FIELDVALUE(ex.Number) IS NOT NULL THEN
+        SET errNumber = FIELDVALUE(ex.Number);
+        SET errNode = COALESCE(FIELDVALUE(ex.Label), errNode);
+        SET errText = COALESCE(FIELDVALUE(ex.Text), '');
+        FOR ins AS ex.Insert[] DO
+            SET errText = errText || ' | ' || COALESCE(FIELDVALUE(ins.Text), '');
+        END FOR;
+    END IF;
     MOVE ex LASTCHILD;
 END WHILE;
 ```
@@ -147,7 +150,7 @@ Source: [JavaCompute node exception handling](https://www.ibm.com/docs/en/app-co
 - Do not log full payloads that may contain personal or confidential data unless the user asks for it.
 - Keep the original message unchanged on the error queue, or reference it by its correlation id, so it can be replayed after the fix.
 - A Trace node with the pattern `${ExceptionList}` is useful while developing. IBM advises removing Trace nodes or switching them off (destination `None`) once the flow is tested.
-- For diagnosis, the integration server exception log can be enabled in `server.conf.yaml` under `ResourceManagers` > `ExceptionLog`. It records exceptions even when a flow handles them, in a rolling set of 4 files that overwrite the oldest data. Use it as a temporary diagnostic aid, not as the flow's error log.
+- For diagnosis, the integration server exception log can be enabled in the `ExceptionLog` settings of `server.conf.yaml`. It records exceptions even when a flow handles them, in a rolling set of 4 files that overwrite the oldest data. Use it as a temporary diagnostic aid, not as the flow's error log.
 
 Source: [Trace node](https://www.ibm.com/docs/en/app-connect/13.0.x?topic=nodes-trace-node), [Enabling the exception log](https://www.ibm.com/docs/en/app-connect/13.0.x?topic=flows-enabling-exception-log), [Viewing the exception log](https://www.ibm.com/docs/en/app-connect/13.0.x?topic=logs-viewing-exception-log)
 
