@@ -48,6 +48,7 @@ Source: [Handling errors in message flows](https://www.ibm.com/docs/en/app-conne
 - If the backout threshold is reached a second time in the fail flow, the node tries the backout queue and then the dead-letter queue. Handle the error in the fail flow; do not rely on this fallback.
 - A `BOTHRESH` of 0 behaves as 1, which means no retry. Use 2 for one retry.
 - Always define `BOQNAME` (or wire the MQ Input `failure` terminal to an error queue) so a poison message cannot block the queue.
+- Separate retryable errors from non-retryable ones. Retry transient errors, such as a database or backend that is unavailable, by rethrowing so MQ backout applies. Handle non-retryable errors, such as a validation or parse failure, the first time: log them, put the message to the error queue and let the transaction commit, because a retry cannot fix them. When the catch flow cannot tell which kind it has, rethrow.
 - To keep an error record even when the flow rolls back, set the error queue MQ Output node `Transaction mode` to `No`. A `No` put is committed immediately. Verify this on a test queue, because it changes delivery guarantees.
 
 Source: [MQInput node](https://www.ibm.com/docs/en/app-connect/13.0.x?topic=nodes-mqinput-node), [MQOutput node](https://www.ibm.com/docs/en/app-connect/13.0.x?topic=nodes-mqoutput-node), [Handling MQInput node errors](https://www.ibm.com/docs/en/app-connect/13.0.x?topic=flows-handling-mqinput-node-errors)
