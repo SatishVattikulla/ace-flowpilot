@@ -17,7 +17,8 @@ Use this skill when the user asks to create or modify `.esql` files for ACE Comp
 ## Required reading order
 
 1. [`skills/shared/esql-guidelines.md`](../shared/esql-guidelines.md)
-2. [`skills/shared/review-checklist.md`](../shared/review-checklist.md)
+2. [`skills/shared/error-handling-rules.md`](../shared/error-handling-rules.md)
+3. [`skills/shared/review-checklist.md`](../shared/review-checklist.md)
 
 ## Critical rules
 
