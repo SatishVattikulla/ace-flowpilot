@@ -21,6 +21,7 @@ Use this skill when the user asks to create or modify ACE Toolkit `.msgflow` fil
 3. [`skills/shared/message-flow-rules.md`](../shared/message-flow-rules.md)
 4. [`skills/shared/node-types.md`](../shared/node-types.md)
 5. [`skills/shared/review-checklist.md`](../shared/review-checklist.md)
+6. If the flow has an MQ or HTTP input node, calls a database or backend, or the user asks for error handling: [`skills/ace-error-handling/SKILL.md`](../ace-error-handling/SKILL.md)
 
 ## Critical rules
 
